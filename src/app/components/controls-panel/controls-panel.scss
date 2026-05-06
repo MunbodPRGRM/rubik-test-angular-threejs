@@ -1,0 +1,48 @@
+.ui-panel {
+  position: absolute; /* ให้ลอยอยู่เหนือ Canvas */
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 15px 30px;
+  border-radius: 12px;
+  text-align: center;
+  color: white;
+  font-family: sans-serif;
+  pointer-events: auto; /* สำคัญมาก เพื่อให้คลิกปุ่มได้ */
+}
+
+h1 {
+  margin: 0 0 15px 0;
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+}
+
+.btn {
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.shuffle {
+  background-color: #ff9800;
+  color: white;
+}
+
+.reset {
+  background-color: #e91e63;
+  color: white;
+}

@@ -1,59 +1,25 @@
-# RubikWeb
+# 🎲 เว็บแอปพลิเคชันรูบิก 3 มิติ (3D Interactive Rubik's Cube)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.0.5.
+โปรเจกต์เว็บแอปพลิเคชันรูบิก 3 มิติที่สามารถโต้ตอบได้ สร้างขึ้นด้วย **Angular**, **Three.js**, และ **GSAP**
 
-## Development server
+## ✨ ฟีเจอร์หลัก (Features)
 
-To start a local development server, run:
+- **การโต้ตอบ 3 มิติเต็ม:** หมุนกล้องดูรอบก้อนรูบิกได้เกือบอิสระด้วย OrbitControls
+- **ระบบควบคุมการลาก/ปัด (Swipe/Drag Controls):** คลิกแล้วลากแถวหรือคอลัมน์ใดก็ได้เพื่อหมุน โดยระบบจะคำนวณทิศทางได้อย่างแม่นยำจากหน้าตัด (Face Normals) และทิศทางการลากของผู้ใช้ (ยังมีปัญหาตรงที่บางหน้าก็ปัดได้ไม่ตรงตามที่ผู้ใช้ต้องการ)
+- **แอนิเมชันลื่นไหล:** ใช้ GSAP ในการทำแอนิเมชันหมุนชิ้นส่วนแต่ละชั้นให้ดูนุ่มนวลและเป็นธรรมชาติ
+- **สับเปลี่ยนและเริ่มใหม่ (Shuffle & Reset):** มีอัลกอริทึมในตัวสำหรับหมุนสุ่มสับเปลี่ยนสีรูบิก และมีปุ่มรีเซ็ตเพื่อกลับคืนสู่สภาพที่แก้เสร็จแล้ว
+- **รองรับทุกขนาดหน้าจอ (Responsive Design):** ปรับขนาด Canvas 3 มิติและสัดส่วนมุมกล้องให้พอดีกับหน้าจอทุกขนาดโดยอัตโนมัติ
 
-```bash
-ng serve
-```
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- **Framework:** [Angular](https://angular.io/) (TypeScript)
+- **3D Graphics:** [Three.js](https://threejs.org/)
+- **Animation Engine:** [GSAP](https://greensock.com/gsap/) (GreenSock Animation Platform)
 
-## Code scaffolding
+## 🏗️ โครงสร้างของโปรเจกต์ (Architecture)
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+โปรเจกต์นี้ใช้หลักการแยกส่วนการทำงาน (Separation of Concerns) อย่างเคร่งครัด เพื่อให้โค้ดเป็นระเบียบและคงประสิทธิภาพสูงสุด:
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `EngineService` **(แกนหลัก):** ทำงานอยู่นอก Angular Zone (`NgZone.runOutsideAngular`) เพื่อป้องกันปัญหาคอขวดด้านประสิทธิภาพ ทำหน้าที่จัดการ `WebGLRenderer`, `Scene`, `Camera`, ลอจิกการตรวจจับของ Raycaster, และการคำนวณตำแหน่ง 3 มิติ (`THREE.Group.attach`)
+- `RubikCanvasComponent` **(ส่วนแสดงผล):** Component น้ำหนักเบาที่ทำหน้าที่แค่เชื่อมต่อแท็ก HTML `<canvas>` เข้ากับ `EngineService`
+- `ControlsPanelComponent` **(ส่วนอินเทอร์เฟซผู้ใช้):** ส่วนควบคุม UI ที่ซ้อนทับอยู่ด้านบน เพื่อใช้สั่งการทำงานระดับสูง เช่น การสับเปลี่ยนสีและการเริ่มใหม่
