@@ -23,3 +23,7 @@
 - `EngineService` **(แกนหลัก):** ทำงานอยู่นอก Angular Zone (`NgZone.runOutsideAngular`) เพื่อป้องกันปัญหาคอขวดด้านประสิทธิภาพ ทำหน้าที่จัดการ `WebGLRenderer`, `Scene`, `Camera`, ลอจิกการตรวจจับของ Raycaster, และการคำนวณตำแหน่ง 3 มิติ (`THREE.Group.attach`)
 - `RubikCanvasComponent` **(ส่วนแสดงผล):** Component น้ำหนักเบาที่ทำหน้าที่แค่เชื่อมต่อแท็ก HTML `<canvas>` เข้ากับ `EngineService`
 - `ControlsPanelComponent` **(ส่วนอินเทอร์เฟซผู้ใช้):** ส่วนควบคุม UI ที่ซ้อนทับอยู่ด้านบน เพื่อใช้สั่งการทำงานระดับสูง เช่น การสับเปลี่ยนสีและการเริ่มใหม่
+
+## 🌍 Live Demo
+
+**สามารถทดลองเล่นโปรเจกต์จริงได้ที่นี่:** [คลิกเพื่อดูตัวอย่างเว็บไซต์](https://rubik-3d-test.web.app/)
