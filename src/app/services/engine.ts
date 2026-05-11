@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import { TrackballControls } from 'three/examples/jsm/Addons.js';
 import gsap from 'gsap';
+import { RoundedBoxGeometry } from 'three/examples/jsm/Addons.js';
 
 @Injectable({
   providedIn: 'root',
@@ -46,6 +47,13 @@ export class Engine {
     this.scene.add(this.cubeGroup);
     this.buildRubik();
 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(10, 20, 10);
+    this.scene.add(directionalLight);
+
     // --- ตั้งค่า TrackballControls สำหรับการหมุนแบบอิสระ ---
     this.controls = new TrackballControls(this.camera, this.renderer.domElement);
     this.controls.rotateSpeed = 3.0; // ความไวในการหมุนกล้อง (ปรับลด/เพิ่มได้)
@@ -64,26 +72,69 @@ export class Engine {
   }
 
   private buildRubik(): void {
-    // กำหนดสีของทั้ง 6 ด้าน: ขวา(แดง), ซ้าย(ส้ม), บน(ขาว), ล่าง(เหลือง), หน้า(เขียว), หลัง(น้ำเงิน)
-    const colors = [0xff0000, 0xffa500, 0xffffff, 0xffff00, 0x00ff00, 0x0000ff];
-    const materials = colors.map(color => new THREE.MeshBasicMaterial({ color }));
+    // 1. เปลี่ยนสีให้ดูโมเดิร์นขึ้นนิดหน่อย (สีสดแต่อมพาสเทลนิดๆ จะสวยมาก)
+    const colors = [
+      0xb71234, // ขวา (แดงเข้ม)
+      0xff5800, // ซ้าย (ส้ม)
+      0xffffff, // บน (ขาว)
+      0xffd500, // ล่าง (เหลือง)
+      0x009b48, // หน้า (เขียว)
+      0x0046ad  // หลัง (น้ำเงิน)
+    ];
 
-    const size = 1;      // ขนาดชิ้นส่วน 1x1x1
-    const spacing = 1.05; // ระยะห่างเพื่อให้เห็นขอบดำระหว่างชิ้น
+    // 2. เปลี่ยนเป็น MeshStandardMaterial เพื่อให้รับแสงและดูเป็นพลาสติกเงางาม
+    const materials = colors.map(color => new THREE.MeshStandardMaterial({ 
+      color: color,
+      roughness: 0.1, // ค่ายิ่งน้อย ยิ่งเงา (พลาสติกมันวาว)
+      metalness: 0.1  // ให้ความรู้สึกแข็งแรงนิดๆ
+    }));
 
-    // สร้างลูปแกน x, y, z (3x3x3 = 27 ชิ้น)
+    const size = 0.96;   // หดชิ้นส่วนให้เล็กลงนิดเดียว เพื่อเว้นร่องสีดำ
+    const spacing = 1.0; // ขยับให้แกนกลางชิดกันพอดี (ไม่มีช่องว่างอากาศแล้ว)
+    const radius = 0.08; // ความโค้งมนของขอบชิ้นส่วน
+
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
         for (let z = -1; z <= 1; z++) {
-          const geometry = new THREE.BoxGeometry(size, size, size);
-          const cubie = new THREE.Mesh(geometry, materials);
+          
+          // 3. สร้างก้อนพลาสติก "สีดำ" เป็นแกนใน (ช่วยทำให้ร่องระหว่างรูบิกดูเป็นสีดำสมจริง)
+          const blackInnerGeo = new RoundedBoxGeometry(size, size, size, 4, radius);
+          const blackMaterial = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5 });
+          const cubie = new THREE.Mesh(blackInnerGeo, blackMaterial);
 
-          // เพิ่มเส้นขอบสีดำให้ดูเป็นชิ้นๆ
-          const edges = new THREE.EdgesGeometry(geometry);
-          const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
-          cubie.add(line);
+          // 4. สร้าง "สติกเกอร์สี" แปะทับหน้าก้อนสีดำอีกที
+          // เราใช้ PlaneGeometry แปะเข้าไปทั้ง 6 ด้าน เพื่อให้ดูเหมือนรูบิกของแท้
+          const stickerSize = size - 0.1; // สติกเกอร์ต้องเล็กกว่าชิ้นพลาสติกนิดนึง
+          const stickerGeo = new THREE.PlaneGeometry(stickerSize, stickerSize);
+          const offset = size / 2 + 0.001; // ระยะขยับสติกเกอร์ออกมาแปะที่ผิว
 
-          // กำหนดตำแหน่ง 3 มิติ
+          // สร้างและแปะสติกเกอร์ทีละหน้า
+          const faces = [
+            { mat: materials[0], pos: [offset, 0, 0], rot: [0, Math.PI / 2, 0] },   // ขวา
+            { mat: materials[1], pos: [-offset, 0, 0], rot: [0, -Math.PI / 2, 0] }, // ซ้าย
+            { mat: materials[2], pos: [0, offset, 0], rot: [-Math.PI / 2, 0, 0] },  // บน
+            { mat: materials[3], pos: [0, -offset, 0], rot: [Math.PI / 2, 0, 0] },  // ล่าง
+            { mat: materials[4], pos: [0, 0, offset], rot: [0, 0, 0] },             // หน้า
+            { mat: materials[5], pos: [0, 0, -offset], rot: [0, Math.PI, 0] }       // หลัง
+          ];
+
+          // เช็คว่าชิ้นนี้อยู่ขอบด้านไหน ก็แปะสติกเกอร์แค่ด้านนั้น
+          faces.forEach((face, index) => {
+            if ((index === 0 && x === 1) || 
+                (index === 1 && x === -1) || 
+                (index === 2 && y === 1) || 
+                (index === 3 && y === -1) || 
+                (index === 4 && z === 1) || 
+                (index === 5 && z === -1)) {
+              const sticker = new THREE.Mesh(stickerGeo, face.mat);
+              sticker.position.set(face.pos[0], face.pos[1], face.pos[2]);
+              sticker.rotation.set(face.rot[0], face.rot[1], face.rot[2]);
+              cubie.add(sticker);
+            }
+          });
+
+          // เก็บพิกัดตั้งต้นไว้
+          cubie.userData = { initialPosition: new THREE.Vector3(x, y, z) };
           cubie.position.set(x * spacing, y * spacing, z * spacing);
           
           this.cubeGroup.add(cubie);
