@@ -1,6 +1,7 @@
 import { Injectable, ElementRef, NgZone } from '@angular/core';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
+import { TrackballControls } from 'three/examples/jsm/Addons.js';
 import gsap from 'gsap';
 
 @Injectable({
@@ -11,7 +12,8 @@ export class Engine {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
-  private controls!: OrbitControls;
+  // private controls!: OrbitControls;
+  private controls!: TrackballControls;
   
   // เก็บก้อนรูบิกทั้งหมดไว้ใน Group เดียวกันก่อน
   public cubeGroup = new THREE.Group();
@@ -44,12 +46,13 @@ export class Engine {
     this.scene.add(this.cubeGroup);
     this.buildRubik();
 
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true; // เปิดใช้ความหน่วง ทำให้เวลาหมุนสมูทขึ้น
-    this.controls.dampingFactor = 0.05; // ระดับความหน่วง
-    this.controls.enablePan = false;    // ปิดการคลิกขวาแล้วเลื่อนกล้อง (บังคับให้อยู่ตรงกลางเสมอ)
-    this.controls.minDistance = 4;      // ซูมเข้าได้ใกล้สุดแค่นี้
-    this.controls.maxDistance = 15;     // ซูมออกได้ไกลสุดแค่นี้
+    // --- ตั้งค่า TrackballControls สำหรับการหมุนแบบอิสระ ---
+    this.controls = new TrackballControls(this.camera, this.renderer.domElement);
+    this.controls.rotateSpeed = 3.0; // ความไวในการหมุนกล้อง (ปรับลด/เพิ่มได้)
+    this.controls.zoomSpeed = 1.2;   // ความไวในการซูม
+    this.controls.noPan = true;      // ปิดการคลิกขวาเพื่อเลื่อนกล้องออกนอกศูนย์กลาง
+    this.controls.staticMoving = false; // เปิดใช้ความหน่วง (Damping)
+    this.controls.dynamicDampingFactor = 0.1; // ระดับความสมูทเวลาปล่อยเมาส์
 
     window.addEventListener('resize', () => this.onWindowResize());
 
@@ -106,13 +109,12 @@ export class Engine {
   private onWindowResize(): void {
     const width = window.innerWidth;
     const height = window.innerHeight;
-    
-    // อัปเดตสัดส่วนของกล้อง
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
-    
-    // อัปเดตขนาดของ Renderer
     this.renderer.setSize(width, height);
+    
+    // สิ่งที่ต้องเพิ่มสำหรับ TrackballControls
+    this.controls.handleResize();
   }
 
   private onPointerDown(event: PointerEvent): void {
