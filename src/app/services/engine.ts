@@ -145,66 +145,57 @@ export class Engine {
     }
   }
 
-  // ฟังก์ชันใหม่: ประมวลผลตอนปล่อยเมาส์ (หรือยกนิ้ว)
   private onPointerUp(event: PointerEvent): void {
-    // เปิด OrbitControls กลับมาเสมอ ไม่ว่าจะลากสำเร็จหรือไม่
+    // เปิด OrbitControls กลับมาเสมอ
     this.controls.enabled = true;
 
     if (!this.isDragging || !this.intersectData) return;
     this.isDragging = false;
 
-    // คำนวณระยะทางที่ลากไป
     const deltaX = event.clientX - this.dragStartMouse.x;
     const deltaY = event.clientY - this.dragStartMouse.y;
 
-    // ถ้าระยะลากน้อยกว่า 15 pixel ถือว่าแค่คลิกเฉยๆ ไม่ได้ลาก (ป้องกันการลั่น)
+    // ถ้าระยะลากน้อยกว่า 15 pixel ถือว่าไม่ได้ลาก
     if (Math.abs(deltaX) < 15 && Math.abs(deltaY) < 15) return;
 
     const { cubie, normal } = this.intersectData;
-    let rotateAxis: 'x' | 'y' | 'z' = 'x';
-    let angle = Math.PI / 2;
 
-    // --- ลอจิกแปลงการลาก 2D เป็นการหมุนแกน 3D ---
-    // ตรวจสอบว่าผู้ใช้คลิกโดนหน้าไหน (ดูจากแกน Normal ที่มีค่าเป็น 1 หรือ -1)
-    
-    if (Math.abs(normal.x) > 0.5) { 
-      // คลิกโดนหน้า ซ้าย/ขวา (แกน X)
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        rotateAxis = 'y'; // ลากแนวนอน -> หมุนแกน Y
-        angle *= Math.sign(deltaX) * Math.sign(normal.x) * -1;
-      } else {
-        rotateAxis = 'z'; // ลากแนวตั้ง -> หมุนแกน Z
-        angle *= Math.sign(deltaY) * Math.sign(normal.x);
-      }
-    } 
-    else if (Math.abs(normal.y) > 0.5) { 
-      // คลิกโดนหน้า บน/ล่าง (แกน Y)
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        rotateAxis = 'z'; // ลากแนวนอน -> หมุนแกน Z
-        angle *= Math.sign(deltaX) * Math.sign(normal.y);
-      } else {
-        rotateAxis = 'x'; // ลากแนวตั้ง -> หมุนแกน X
-        angle *= Math.sign(deltaY) * Math.sign(normal.y) * -1;
-      }
-    } 
-    else if (Math.abs(normal.z) > 0.5) { 
-      // คลิกโดนหน้า หน้า/หลัง (แกน Z)
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        rotateAxis = 'y'; // ลากแนวนอน -> หมุนแกน Y
-        angle *= Math.sign(deltaX) * Math.sign(normal.z);
-      } else {
-        rotateAxis = 'x'; // ลากแนวตั้ง -> หมุนแกน X
-        angle *= Math.sign(deltaY) * Math.sign(normal.z);
-      }
+    // 1. หา "ทิศทางการลากในโลก 3 มิติ" โดยอิงจากมุมกล้องปัจจุบัน
+    // ดึงเวกเตอร์แกน X (ขวา) และ Y (บน) ของกล้องออกมา
+    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+    const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.camera.quaternion);
+
+    // สร้างเวกเตอร์ทิศทางที่เราลากเมาส์ (สังเกตว่า deltaY ต้องติดลบ เพราะแกน Y หน้าจอกับ 3D สวนทางกัน)
+    const dragVector3D = camRight.multiplyScalar(deltaX).add(camUp.multiplyScalar(-deltaY)).normalize();
+
+    // 2. ใช้ท่าไม้ตาย Cross Product ระหว่าง "หน้าปกติที่คลิก (Normal)" กับ "ทิศทางที่ลาก (Drag)"
+    // ผลลัพธ์ที่ได้จะเป็นเวกเตอร์ "แกนหมุน (Rotation Axis)" ที่ถูกต้อง 100% ทันที
+    const rotationAxisVector = normal.clone().cross(dragVector3D);
+
+    // 3. ดูว่าแกนหมุนที่คำนวณได้ มันตรงกับแกน X, Y หรือ Z มากที่สุด
+    let rotateAxis: 'x' | 'y' | 'z' = 'x';
+    let maxVal = Math.abs(rotationAxisVector.x);
+
+    if (Math.abs(rotationAxisVector.y) > maxVal) {
+      maxVal = Math.abs(rotationAxisVector.y);
+      rotateAxis = 'y';
+    }
+    if (Math.abs(rotationAxisVector.z) > maxVal) {
+      maxVal = Math.abs(rotationAxisVector.z);
+      rotateAxis = 'z';
     }
 
-    // ดึงพิกัดปัจจุบันของชิ้นส่วนในแกนที่จะหมุน เพื่อบอกว่าต้องหมุนแถวไหน
+    // 4. หาทิศทางการหมุน (บวก หรือ ลบ 90 องศา)
+    // Math.sign จะคืนค่า 1 (ตาม) หรือ -1 (ทวน) ตามแกนหลักที่เราหามาได้
+    const direction = Math.sign(rotationAxisVector[rotateAxis]);
+    const angle = (Math.PI / 2) * direction;
+
+    // ดึงพิกัดเพื่อบอกว่าหมุนแถวไหน
     const rotateCoordinate = cubie.position[rotateAxis];
     
     // สั่งหมุน!
     this.rotateLayer(rotateAxis, rotateCoordinate, angle);
     
-    // ล้างข้อมูลเก่า
     this.intersectData = null;
   }
 
